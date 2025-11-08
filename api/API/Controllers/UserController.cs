@@ -43,10 +43,10 @@ namespace API.Controllers
                     //Genera un nuevo item y lo llena con el renglon leido del query
                     userItem = new User();
                     userItem.IdUser = Convert.ToInt32(reader["IdUser"]);
-                    userItem.Name = reader["Name"].ToString();
-                    userItem.Phone = reader["Phone"].ToString();
-                    userItem.Company = reader["Company"].ToString();
-                    userItem.Email = reader["Email"].ToString();
+                    userItem.Name = reader["Name"]?.ToString() ?? string.Empty;
+                    userItem.Phone = reader["Phone"]?.ToString() ?? string.Empty;
+                    userItem.Company = reader["Company"]?.ToString() ?? string.Empty;
+                    userItem.Email = reader["Email"]?.ToString() ?? string.Empty;
 
                     //Agrega el Item leido a la lista
                     listaUser.Add(userItem);

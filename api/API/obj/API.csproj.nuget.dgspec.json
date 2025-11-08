@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/marin/Desktop/API-MIT/API/API.csproj": {}
+    "/Users/marin/Desktop/HACK-MIT-Sloan/api/API/API.csproj": {}
   },
   "projects": {
-    "/Users/marin/Desktop/API-MIT/API/API.csproj": {
+    "/Users/marin/Desktop/HACK-MIT-Sloan/api/API/API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/marin/Desktop/API-MIT/API/API.csproj",
+        "projectUniqueName": "/Users/marin/Desktop/HACK-MIT-Sloan/api/API/API.csproj",
         "projectName": "API",
-        "projectPath": "/Users/marin/Desktop/API-MIT/API/API.csproj",
+        "projectPath": "/Users/marin/Desktop/HACK-MIT-Sloan/api/API/API.csproj",
         "packagesPath": "/Users/marin/.nuget/packages/",
-        "outputPath": "/Users/marin/Desktop/API-MIT/API/obj/",
+        "outputPath": "/Users/marin/Desktop/HACK-MIT-Sloan/api/API/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/marin/.nuget/NuGet/NuGet.Config"

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "4LX5DDwbI+o=",
+  "dgSpecHash": "2s6mmJ/IuY4=",
   "success": true,
-  "projectFilePath": "/Users/marin/Desktop/API-MIT/API/APISensores.csproj",
+  "projectFilePath": "/Users/marin/Desktop/HACK-MIT-Sloan/api/API/API.csproj",
   "expectedPackageFiles": [
     "/Users/marin/.nuget/packages/bouncycastle.cryptography/2.3.1/bouncycastle.cryptography.2.3.1.nupkg.sha512",
     "/Users/marin/.nuget/packages/google.protobuf/3.26.1/google.protobuf.3.26.1.nupkg.sha512",
