@@ -2,28 +2,28 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using APISensores.Model;
+using API.Model;
 using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
-namespace APISensores.Controllers
+namespace API.Controllers
 {
     
     [Route("[controller]")]
-    public class AlarmasController : Controller
+    public class UserController : Controller
     {
         //String de conexión, ajustarla a su instancia de MySql
-        private string connectionString = "Server=127.0.0.1;Port=3306;Database=bdSensores;Uid=root;password=rootroot;";
+        private string connectionString = "Server=127.0.0.1;Port=3306;Database=CRM;Uid=root;password=rootroot;";
         
-        // GET: alarmas/values
+        // GET: Get Users
         [HttpGet]
-        public List<Alarmas> Get()
+        public List<User> Get()
         {
-            //Genera una lista de mediciones vacia y un elemento individual
-            List<Alarmas> listaAlarmas = new List<Alarmas>();
-            Alarmas alarmaItem = new Alarmas();
+            //Genera una lista
+            List<User> listaUser = new List<User>();
+            User userItem = new User();
 
             //---- CONFIGURACIÓN DE CONEXIÓN A LA BD -----------------
             MySqlConnection conexion = new MySqlConnection(connectionString);
@@ -33,7 +33,7 @@ namespace APISensores.Controllers
             //--------------------------------------------------------
 
             //----- query SELECT para traer datos
-            cmd.CommandText = "Select * from Alarmas";
+            cmd.CommandText = "Select * from User";
 
             //----- Ejecuta el SELECT (ExecuteReader) Itera los resultados del query           
             using (var reader = cmd.ExecuteReader())
@@ -41,24 +41,27 @@ namespace APISensores.Controllers
                 while (reader.Read())
                 {
                     //Genera un nuevo item y lo llena con el renglon leido del query
-                    alarmaItem = new Alarmas();
-                    alarmaItem.IdAlarma = Convert.ToInt32(reader["IdAlarma"]);
-                    alarmaItem.ValorRegistrado = Convert.ToDouble(reader["ValorRegistrado"]);
-                    alarmaItem.FechaAlarma = Convert.ToDateTime(reader["FechaAlarma"]);
+                    userItem = new User();
+                    userItem.IdUser = Convert.ToInt32(reader["IdUser"]);
+                    userItem.Name = reader["Name"].ToString();
+                    userItem.Phone = reader["Phone"].ToString();
+                    userItem.Company = reader["Company"].ToString();
+                    userItem.Email = reader["Email"].ToString();
+
                     //Agrega el Item leido a la lista
-                    listaAlarmas.Add(alarmaItem);
+                    listaUser.Add(userItem);
                 }
             }
 
             //----- Finaliza conexión
             conexion.Close();
 
-            return listaAlarmas;
+            return listaUser;
         }
 
-        // POST alarmas/value
+        // POST User Info
         [HttpPost]
-        public void PostAlarma([FromBody] Alarmas alarmaItem)
+        public void PostUser([FromBody] User userItem)
         {
             //---- CONFIGURACIÓN DE CONEXIÓN A LA BD -----------------
             MySqlConnection conexion = new MySqlConnection(connectionString);
@@ -68,10 +71,13 @@ namespace APISensores.Controllers
             //--------------------------------------------------------
 
             //--- QUERY INSERT ---------------------------------------            
-            cmd.CommandText = "INSERT INTO Alarmas(ValorRegistrado, FechaAlarma) VALUES(@VALOR,NOW());";
+            cmd.CommandText = "INSERT INTO User(Name, Phone, Company, Email) VALUES(@NAME, @PHONE, @COMPANY, @EMAIL);";
 
             //---- PARAMETROS DEL QUERY -----------------------------
-            cmd.Parameters.AddWithValue("@VALOR", alarmaItem.ValorRegistrado);
+            cmd.Parameters.AddWithValue("@NAME", userItem.Name);
+            cmd.Parameters.AddWithValue("@PHONE", userItem.Phone);
+            cmd.Parameters.AddWithValue("@COMPANY", userItem.Company);
+            cmd.Parameters.AddWithValue("@EMAIL", userItem.Email);
 
             //----- Prepara y ejecuta el INSERT (ExecuteNonQuery)
             cmd.Prepare();

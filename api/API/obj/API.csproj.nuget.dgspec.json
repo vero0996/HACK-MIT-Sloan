@@ -1,15 +1,15 @@
 {
   "format": 1,
   "restore": {
-    "/Users/marin/Desktop/API-MIT/API/APISensores.csproj": {}
+    "/Users/marin/Desktop/API-MIT/API/API.csproj": {}
   },
   "projects": {
-    "/Users/marin/Desktop/API-MIT/API/APISensores.csproj": {
+    "/Users/marin/Desktop/API-MIT/API/API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/marin/Desktop/API-MIT/API/APISensores.csproj",
-        "projectName": "APISensores",
-        "projectPath": "/Users/marin/Desktop/API-MIT/API/APISensores.csproj",
+        "projectUniqueName": "/Users/marin/Desktop/API-MIT/API/API.csproj",
+        "projectName": "API",
+        "projectPath": "/Users/marin/Desktop/API-MIT/API/API.csproj",
         "packagesPath": "/Users/marin/.nuget/packages/",
         "outputPath": "/Users/marin/Desktop/API-MIT/API/obj/",
         "projectStyle": "PackageReference",
