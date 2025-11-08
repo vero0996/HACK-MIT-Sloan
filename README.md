@@ -91,10 +91,7 @@ Almost every business depends on relationships—with customers, partners, inves
 
 ## 👥 Team
 
-Verónica Zapata
-Arthur Vigier
-Diego Uzcátegui
-Marino Caceres
+Verónica Zapata | Arthur Vigier | Diego Uzcátegui | Marino Caceres
 
 Built for **Hack-Nation's Global AI Hackathon** in collaboration with **MIT Sloan AI Club**.
 
