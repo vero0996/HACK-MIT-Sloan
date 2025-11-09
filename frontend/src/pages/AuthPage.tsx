@@ -1,6 +1,7 @@
 // src/pages/AuthPage.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createUser, authenticate } from "../services/authService"; // 👈 import du service
 
 interface AuthProps {
   onLogin: (user: any) => void;
@@ -8,8 +9,8 @@ interface AuthProps {
 
 function AuthPage({ onLogin }: AuthProps) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
-  
+  const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+
   // Login state
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -21,11 +22,12 @@ function AuthPage({ onLogin }: AuthProps) {
     name: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
   const [signupLoading, setSignupLoading] = useState(false);
   const [signupError, setSignupError] = useState("");
 
+  // 🔹 handleLogin — utilise maintenant authService.authenticate()
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginLoading(true);
@@ -37,27 +39,30 @@ function AuthPage({ onLogin }: AuthProps) {
       return;
     }
 
-    // Simulate login process
-    setTimeout(() => {
-      const userData = {
-        name: 'John Doe',
-        email: loginEmail,
-        role: 'admin'
-      };
-      
-      localStorage.setItem('user', JSON.stringify(userData));
-      onLogin(userData);
+    try {
+      const user = await authenticate(loginEmail, loginPassword);
+      if (!user) {
+        setLoginError("Invalid credentials");
+        setLoginLoading(false);
+        return;
+      }
+
+      localStorage.setItem("user", JSON.stringify(user));
+      onLogin(user);
       setLoginLoading(false);
-      navigate('/');
-    }, 1000);
+      navigate("/dashboard"); // redirection post-login
+    } catch (err: any) {
+      setLoginError(err.message || "Login error");
+      setLoginLoading(false);
+    }
   };
 
+  // 🔹 handleSignUp — utilise maintenant authService.createUser()
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setSignupLoading(true);
     setSignupError("");
 
-    // Validation
     if (!signupData.name || !signupData.email || !signupData.password) {
       setSignupError("Please fill in all fields");
       setSignupLoading(false);
@@ -70,25 +75,27 @@ function AuthPage({ onLogin }: AuthProps) {
       return;
     }
 
-    // Simulate signup process
-    setTimeout(() => {
-      const userData = {
+    try {
+      const newUser = await createUser({
         name: signupData.name,
         email: signupData.email,
-        role: 'user'
-      };
-      
-      localStorage.setItem('user', JSON.stringify(userData));
-      onLogin(userData);
+        password: signupData.password,
+      });
+
+      localStorage.setItem("user", JSON.stringify(newUser));
+      onLogin(newUser);
       setSignupLoading(false);
-      navigate('/');
-    }, 1000);
+      navigate("/dashboard");
+    } catch (err: any) {
+      setSignupError(err.message || "Signup error");
+      setSignupLoading(false);
+    }
   };
 
   const handleSignupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSignupData({
       ...signupData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -98,8 +105,18 @@ function AuthPage({ onLogin }: AuthProps) {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            <svg
+              className="w-8 h-8 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+              />
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-slate-900">VoiceCRM</h1>
@@ -111,21 +128,21 @@ function AuthPage({ onLogin }: AuthProps) {
           {/* Tabs */}
           <div className="flex border-b border-slate-200">
             <button
-              onClick={() => setActiveTab('login')}
+              onClick={() => setActiveTab("login")}
               className={`flex-1 py-4 font-medium text-center transition-colors ${
-                activeTab === 'login'
-                  ? 'text-red-600 border-b-2 border-red-600'
-                  : 'text-slate-600 hover:text-slate-900'
+                activeTab === "login"
+                  ? "text-red-600 border-b-2 border-red-600"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               Sign In
             </button>
             <button
-              onClick={() => setActiveTab('signup')}
+              onClick={() => setActiveTab("signup")}
               className={`flex-1 py-4 font-medium text-center transition-colors ${
-                activeTab === 'signup'
-                  ? 'text-red-600 border-b-2 border-red-600'
-                  : 'text-slate-600 hover:text-slate-900'
+                activeTab === "signup"
+                  ? "text-red-600 border-b-2 border-red-600"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               Create Account
@@ -134,17 +151,18 @@ function AuthPage({ onLogin }: AuthProps) {
 
           {/* Forms */}
           <div className="p-8">
-            {/* Login Form */}
-            {activeTab === 'login' && (
+            {activeTab === "login" ? (
               <>
-                <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">Welcome Back</h2>
-                
+                <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">
+                  Welcome Back
+                </h2>
+
                 {loginError && (
                   <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
                     {loginError}
                   </div>
                 )}
-                
+
                 <form onSubmit={handleLogin} className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -185,30 +203,23 @@ function AuthPage({ onLogin }: AuthProps) {
                         Signing In...
                       </div>
                     ) : (
-                      'Sign In'
+                      "Sign In"
                     )}
                   </button>
                 </form>
-
-                <div className="mt-6 text-center">
-                  <p className="text-slate-600 text-sm">
-                    Demo: Use any email and password
-                  </p>
-                </div>
               </>
-            )}
-
-            {/* Sign Up Form */}
-            {activeTab === 'signup' && (
+            ) : (
               <>
-                <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">Create Account</h2>
-                
+                <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">
+                  Create Account
+                </h2>
+
                 {signupError && (
                   <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
                     {signupError}
                   </div>
                 )}
-                
+
                 <form onSubmit={handleSignUp} className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -281,7 +292,7 @@ function AuthPage({ onLogin }: AuthProps) {
                         Creating Account...
                       </div>
                     ) : (
-                      'Create Account'
+                      "Create Account"
                     )}
                   </button>
                 </form>

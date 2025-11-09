@@ -8,6 +8,7 @@ import Contacts from './pages/Contacts';
 import Recordings from './pages/Recording';
 import Settings from './pages/Settings';
 
+
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +73,7 @@ function App() {
             element={user ? <Settings /> : <Navigate to="/authPage" replace />} 
           />
           {/* Redirección por defecto */}
-          <Route path="*" element={<Navigate to={user ? "/" : "/authPage"} replace />} />
+          <Route path="*" element={<Navigate to={"/authPage"} replace />} />
         </Routes>
       </div>
     </Router>
