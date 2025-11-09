@@ -1,0 +1,8 @@
+version: "2"
+authtoken: 34ZuL2MbrswnXvlte6d6JXlGU18_79i8SQ5jFyATjVE6ZyiQJ
+tunnels:
+  api:
+    proto: http
+    addr: 192.168.1.5:5074
+    domain: unchalked-arboreally-chase.ngrok-free.dev
+
