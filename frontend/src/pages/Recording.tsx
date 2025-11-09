@@ -1,18 +1,88 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiRequest } from "../api/apiClient"; // Import the apiRequest helper
 
+// --- CHANGE 1: New 'Recording' interface to match API (camelCase) ---
 interface Recording {
-  id: string;
+  idRecording: number;
+  idLead: number;
   title: string;
   duration: string;
-  date: string;
-  contact: string;
   status: string;
   source: string;
+  created_At: string;
+  // ... add other fields from Recordings.cs if needed
+}
+
+// --- CHANGE 2: Added 'Contact' interface to map leads ---
+interface Contact {
+  idLead: number;
+  company: string;
 }
 
 function Recordings() {
   const navigate = useNavigate();
+  // --- CHANGE 3: 'recordings' state now starts empty ---
+  const [recordings, setRecordings] = useState<Recording[]>([]);
+  // --- CHANGE 4: Added 'contacts' state ---
+  const [contacts, setContacts] = useState<Contact[]>([]);
+
+  const [filter, setFilter] = useState("all");
+
+  // --- CHANGE 5: useEffect to fetch /recordings and /leads ---
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [recordingsData, contactsData] = await Promise.all([
+          apiRequest<Recording[]>("recordings"),
+          apiRequest<Contact[]>("leads"),
+        ]);
+        
+        // Sort recordings by date, newest first
+        recordingsData.sort((a, b) => new Date(b.created_At).getTime() - new Date(a.created_At).getTime());
+        
+        setRecordings(recordingsData);
+        setContacts(contactsData);
+      } catch (err) {
+        console.error("Error fetching recordings data:", err);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // --- CHANGE 6: Create a 'Map' to look up company names by idLead ---
+  const leadMap = useMemo(() => {
+    return new Map(contacts.map((contact) => [contact.idLead, contact.company]));
+  }, [contacts]);
+
+  // --- CHANGE 7: Update filter logic to use new properties ---
+  const filteredRecordings = recordings.filter((recording) => {
+    if (filter === "all") return true;
+    return recording.source === filter; // This logic matches the original mock
+  });
+
+  const reprocessRecording = (id: number) => {
+    alert(`Reprocessing recording ${id}...`);
+    // In a real app, this would PATCH/PUT to the API
+  };
+
+  // --- CHANGE 8: Update deleteRecording to use API ---
+  const deleteRecording = async (id: number) => {
+    // Kept the confirm() dialog as it was part of the original design
+    if (confirm("Are you sure you want to delete this recording?")) {
+      try {
+        await apiRequest(`recordings/${id}`, "DELETE");
+        // Update state to remove the deleted item from the UI
+        setRecordings((prev) =>
+          prev.filter((rec) => rec.idRecording !== id)
+        );
+      } catch (err) {
+        console.error("Error deleting recording:", err);
+      }
+    }
+  };
+
+  // --- All JSX below is unchanged, only the 'filteredRecordings.map' uses the new state ---
 
   // ✅ Données par défaut
   const defaultRecordings: Recording[] = [
@@ -110,7 +180,7 @@ function Recordings() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
+      {/* Header (no changes) */}
       <header className="bg-white border-b border-slate-200 w-full">
         <div className="w-full px-4">
           <div className="flex justify-between items-center h-16">
@@ -118,29 +188,67 @@ function Recordings() {
               <div className="flex-shrink-0 flex items-center gap-3">
                 <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
                   <svg
+                   
                     className="w-5 h-5 text-white"
+                   
                     fill="none"
+                   
                     stroke="currentColor"
+                   
                     viewBox="0 0 24 24"
+                  
                   >
                     <path
+                     
                       strokeLinecap="round"
+                     
                       strokeLinejoin="round"
+                     
                       strokeWidth={2}
+                     
                       d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                   
                     />
                   </svg>
                 </div>
                 <div>
                   <span className="text-xl font-bold text-slate-900">
+                    
                     VoiceCRM
+                  
                   </span>
                   <span className="text-xs text-blue-600 font-medium ml-2 bg-blue-50 px-2 py-1 rounded">
+                    
                     Zero-Click
+                  
                   </span>
                 </div>
               </div>
               <nav className="hidden md:ml-8 md:flex space-x-1">
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  className="text-slate-600 hover:text-slate-900 px-4 py-2 rounded-lg text-sm font-medium"
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => navigate("/contacts")}
+                  className="text-slate-600 hover:text-slate-900 px-4 py-2 rounded-lg text-sm font-medium"
+                >
+                  Contacts
+                </button>
+                <button
+                  onClick={() => navigate("/recordings")}
+                  className="text-slate-700 bg-red-50 px-4 py-2 rounded-lg text-sm font-medium"
+                >
+                  Recordings
+                </button>
+                <button
+                  onClick={() => navigate("/settings")}
+                  className="text-slate-600 hover:text-slate-900 px-4 py-2 rounded-lg text-sm font-medium"
+                >
+                  Settings
+                </button>
                 <button
                   onClick={() => navigate("/dashboard")}
                   className="text-slate-600 hover:text-slate-900 px-4 py-2 rounded-lg text-sm font-medium"
@@ -198,10 +306,12 @@ function Recordings() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-slate-900 mb-2">
-            Voice Recordings
+            Recordings
           </h1>
           <p className="text-slate-600">
-            {recordings.length} recordings processed by AI
+            
+            Browse and manage all processed recordings
+          
           </p>
         </div>
 
@@ -241,6 +351,7 @@ function Recordings() {
 
         {/* Recordings Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* --- CHANGE 9: Map over 'filteredRecordings' and use new properties --- */}
           {filteredRecordings.map((recording) => (
             <div
               key={recording.id}
@@ -283,10 +394,9 @@ function Recordings() {
                 </span>
               </div>
 
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm text-slate-600">
-                  <span>Duration</span>
-                  <span className="font-medium">{recording.duration}</span>
+              <div className="mb-4">
+                <div className="text-sm text-slate-900 font-medium">
+                  {leadMap.get(recording.idLead) || "Unknown Contact"}
                 </div>
                 <div className="flex justify-between text-sm text-slate-600">
                   <span>Date</span>
