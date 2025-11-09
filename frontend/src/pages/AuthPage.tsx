@@ -24,6 +24,8 @@ function AuthPage({ onLogin }: AuthProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
 
+  const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+
   // Login state
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -35,6 +37,7 @@ function AuthPage({ onLogin }: AuthProps) {
     name: "",
     email: "",
     password: "",
+    confirmPassword: "",
     confirmPassword: "",
   });
   const [signupLoading, setSignupLoading] = useState(false);
@@ -71,6 +74,7 @@ function AuthPage({ onLogin }: AuthProps) {
     } finally {
       setLoginLoading(false);
     }
+    }
   };
 
   // --- This is our API-connected handleSignUp ---
@@ -105,11 +109,13 @@ function AuthPage({ onLogin }: AuthProps) {
     } finally {
       setSignupLoading(false);
     }
+    }
   };
 
   const handleSignupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSignupData({
       ...signupData,
+      [e.target.name]: e.target.value,
       [e.target.name]: e.target.value,
     });
   };
@@ -121,6 +127,18 @@ function AuthPage({ onLogin }: AuthProps) {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg
+              className="w-8 h-8 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+              />
             <svg
               className="w-8 h-8 text-white"
               fill="none"
@@ -145,7 +163,11 @@ function AuthPage({ onLogin }: AuthProps) {
           <div className="flex border-b border-slate-200">
             <button
               onClick={() => setActiveTab("login")}
+              onClick={() => setActiveTab("login")}
               className={`flex-1 py-4 font-medium text-center transition-colors ${
+                activeTab === "login"
+                  ? "text-red-600 border-b-2 border-red-600"
+                  : "text-slate-600 hover:text-slate-900"
                 activeTab === "login"
                   ? "text-red-600 border-b-2 border-red-600"
                   : "text-slate-600 hover:text-slate-900"
@@ -155,7 +177,11 @@ function AuthPage({ onLogin }: AuthProps) {
             </button>
             <button
               onClick={() => setActiveTab("signup")}
+              onClick={() => setActiveTab("signup")}
               className={`flex-1 py-4 font-medium text-center transition-colors ${
+                activeTab === "signup"
+                  ? "text-red-600 border-b-2 border-red-600"
+                  : "text-slate-600 hover:text-slate-900"
                 activeTab === "signup"
                   ? "text-red-600 border-b-2 border-red-600"
                   : "text-slate-600 hover:text-slate-900"
@@ -168,7 +194,12 @@ function AuthPage({ onLogin }: AuthProps) {
           {/* Forms */}
           <div className="p-8">
             {activeTab === "login" ? (
+            {activeTab === "login" ? (
               <>
+                <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">
+                  Welcome Back
+                </h2>
+
                 <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">
                   Welcome Back
                 </h2>
@@ -178,6 +209,7 @@ function AuthPage({ onLogin }: AuthProps) {
                     {loginError}
                   </div>
                 )}
+
 
                 <form onSubmit={handleLogin} className="space-y-6">
                   <div>
@@ -220,12 +252,18 @@ function AuthPage({ onLogin }: AuthProps) {
                       </div>
                     ) : (
                       "Sign In"
+                      "Sign In"
                     )}
                   </button>
                 </form>
               </>
             ) : (
+            ) : (
               <>
+                <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">
+                  Create Account
+                </h2>
+
                 <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">
                   Create Account
                 </h2>
@@ -235,6 +273,7 @@ function AuthPage({ onLogin }: AuthProps) {
                     {signupError}
                   </div>
                 )}
+
 
                 <form onSubmit={handleSignUp} className="space-y-6">
                   <div>
@@ -308,6 +347,7 @@ function AuthPage({ onLogin }: AuthProps) {
                         Creating Account...
                       </div>
                     ) : (
+                      "Create Account"
                       "Create Account"
                     )}
                   </button>

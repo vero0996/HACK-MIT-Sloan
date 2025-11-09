@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 // --- We use our working 'apiRequest' helper ---
 import { apiRequest } from "../api/apiClient";
@@ -116,7 +117,9 @@ function Contacts() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
+      {/* Header */}
       <header className="bg-white border-b border-slate-200 w-full">
+        <div className="w-full px-4">
         <div className="w-full px-4">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
@@ -188,6 +191,7 @@ function Contacts() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-slate-900 mb-2">Contacts</h1>
           <p className="text-slate-600">
@@ -245,11 +249,14 @@ function Contacts() {
         <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
             <div className="flex-1 w-full sm:max-w-md">
+            <div className="flex-1 w-full sm:max-w-md">
               <input
                 type="text"
                 placeholder="Search contacts..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              />
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
             </div>
@@ -306,6 +313,7 @@ function Contacts() {
                         </div>
                       </div>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{contact.company}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-slate-900">
                         {contact.email}
