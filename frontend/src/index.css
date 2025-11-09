@@ -70,3 +70,18 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Force full width */
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.App {
+  width: 100%;
+}
