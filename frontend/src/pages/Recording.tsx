@@ -1,104 +1,197 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiRequest } from "../api/apiClient";
 
-// --- This is the correct API-driven interface ---
+interface LeadDetails {
+  company: string | null;
+  email: string | null;
+  phone: string | null;
+  status: "new" | "contacted" | "qualified" | "lost";
+  leadSource: string | null;
+  priority: "low" | "medium" | "high";
+  firstName: string | null;
+  lastName: string | null;
+}
+
 interface Recording {
-  idRecording: number;
-  idLead: number;
+  id: string;
   title: string;
   duration: string;
-  status: string; // "processed", "processing"
-  source: string; // "call", "voice", "upload"
-  created_At: string;
+  date: string;
+  contact: string;
+  status: string;
+  source: string;
+  lead?: LeadDetails | null;
+  transcript?: string | null;
 }
 
-// --- This interface is for the leads lookup map ---
-interface Contact {
-  idLead: number;
-  company: string;
-}
+const formatDuration = (durationInSeconds: number | null | undefined) => {
+  if (
+    typeof durationInSeconds !== "number" ||
+    Number.isNaN(durationInSeconds) ||
+    !Number.isFinite(durationInSeconds)
+  ) {
+    return "—";
+  }
+
+  const totalSeconds = Math.max(0, Math.floor(durationInSeconds));
+  const minutes = Math.floor(totalSeconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+};
+
+const getAudioDuration = (file: File): Promise<string> => {
+  return new Promise((resolve) => {
+    try {
+      const audio = document.createElement("audio");
+      const objectUrl = URL.createObjectURL(file);
+      audio.preload = "metadata";
+      audio.onloadedmetadata = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(formatDuration(audio.duration));
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve("—");
+      };
+      audio.src = objectUrl;
+    } catch (_error) {
+      resolve("—");
+    }
+  });
+};
 
 function Recordings() {
   const navigate = useNavigate();
+  const apiBaseUrl =
+    import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+    "http://localhost:3001";
 
-  // --- State from API version ---
+  const defaultRecordings: Recording[] = [
+    {
+      id: "1",
+      title: "Project Discussion",
+      duration: "04:32",
+      date: "2024-01-15",
+      contact: "Sarah Chen",
+      status: "processed",
+      source: "voice",
+      lead: null,
+      transcript: null,
+    },
+    {
+      id: "2",
+      title: "Sales Call",
+      duration: "12:15",
+      date: "2024-01-15",
+      contact: "Mike Rodriguez",
+      status: "processed",
+      source: "call",
+      lead: null,
+      transcript: null,
+    },
+    {
+      id: "3",
+      title: "Follow-up Notes",
+      duration: "02:45",
+      date: "2024-01-14",
+      contact: "Jennifer Lee",
+      status: "processed",
+      source: "voice",
+      lead: null,
+      transcript: null,
+    },
+    {
+      id: "4",
+      title: "Client Meeting",
+      duration: "08:21",
+      date: "2024-01-14",
+      contact: "Alex Thompson",
+      status: "processing",
+      source: "call",
+      lead: null,
+      transcript: null,
+    },
+    {
+      id: "5",
+      title: "Quick Update",
+      duration: "01:15",
+      date: "2024-01-13",
+      contact: "Maria Garcia",
+      status: "processed",
+      source: "voice",
+      lead: null,
+      transcript: null,
+    },
+  ];
+
   const [recordings, setRecordings] = useState<Recording[]>([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-
-  // --- State from teammate's UI version ---
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // --- API-fetching logic (replaces localStorage) ---
   useEffect(() => {
-    const fetchData = async () => {
+    const storedRecordings = localStorage.getItem("recordings");
+    if (storedRecordings) {
       try {
-        const [recordingsData, contactsData] = await Promise.all([
-          apiRequest<Recording[]>("recordings"),
-          apiRequest<Contact[]>("leads"),
-        ]);
-
-        recordingsData.sort(
-          (a, b) =>
-            new Date(b.created_At).getTime() - new Date(a.created_At).getTime()
+        const parsed: Recording[] = JSON.parse(storedRecordings).map(
+          (item: Recording) => ({
+            ...item,
+            duration: item.duration ?? "—",
+            lead: item.lead ?? null,
+            transcript: item.transcript ?? null,
+          })
         );
-        
-        setRecordings(recordingsData);
-        setContacts(contactsData);
-      } catch (err) {
-        console.error("Error fetching recordings data:", err);
+        setRecordings(parsed);
+        return;
+      } catch (error) {
+        console.warn("[storage] Failed to parse recordings, resetting", error);
       }
-    };
-    fetchData();
+    }
+
+    setRecordings(defaultRecordings);
+    localStorage.setItem("recordings", JSON.stringify(defaultRecordings));
   }, []);
 
-  // --- Helper to map idLead -> company name ---
-  const leadMap = useMemo(() => {
-    return new Map(contacts.map((contact) => [contact.idLead, contact.company]));
-  }, [contacts]);
-
-  // --- Merged filter logic (uses teammate's UI + API data) ---
   const filteredRecordings = recordings.filter((recording) => {
     const matchesFilter = filter === "all" || recording.status === filter;
-    
-    // Get company name from map for searching
-    const companyName = leadMap.get(recording.idLead)?.toLowerCase() || "";
 
+    const leadName = [recording.lead?.firstName, recording.lead?.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    const companyName = recording.lead?.company?.toLowerCase() ?? "";
     const matchesSearch =
       recording.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      companyName.includes(searchTerm.toLowerCase());
-      
+      recording.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      companyName.includes(searchTerm.toLowerCase()) ||
+      leadName.includes(searchTerm.toLowerCase());
+
     return matchesFilter && matchesSearch;
   });
 
-  // --- Merged delete logic (uses API) ---
-  const deleteRecording = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this recording?")) return;
-    try {
-      await apiRequest(`recordings/${id}`, "DELETE");
-      setRecordings((prev) => prev.filter((rec) => rec.idRecording !== id));
-    } catch (err) {
-      console.error("Error deleting recording:", err);
-    }
+  const persistRecordings = (items: Recording[]) => {
+    setRecordings(items);
+    localStorage.setItem("recordings", JSON.stringify(items));
   };
 
-  // --- Merged reprocess logic (mimics teammate's UI, uses API properties) ---
-  const reprocessRecording = (id: number) => {
+  const deleteRecording = (id: string) => {
+    persistRecordings(recordings.filter((recording) => recording.id !== id));
+  };
+
+  const reprocessRecording = (id: string) => {
     setRecordings((prev) =>
       prev.map((recording) =>
-        recording.idRecording === id
+        recording.id === id
           ? { ...recording, status: "processing" }
           : recording
       )
     );
-    
-    // This should ideally call a "reprocess" API endpoint
-    // For now, we just mimic the old teammate's timeout
+
     setTimeout(() => {
       setRecordings((prev) =>
         prev.map((recording) =>
-          recording.idRecording === id
+          recording.id === id
             ? { ...recording, status: "processed" }
             : recording
         )
@@ -107,37 +200,106 @@ function Recordings() {
     }, 2000);
   };
 
-  // --- Kept teammate's upload logic (this can be a future API enhancement) ---
   const uploadRecording = () => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "audio/*";
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        // Create a temporary mock recording
-        const newRecording: Recording = {
-          idRecording: Math.floor(Math.random() * 10000), // temp ID
-          idLead: 0, // No real lead for a new upload
-          title: file.name.split(".")[0],
-          duration: "0:00",
-          created_At: new Date().toISOString(),
-          status: "processing",
-          source: "upload",
-        };
-        setRecordings((prev) => [newRecording, ...prev]);
+      if (!file) {
+        return;
+      }
 
-        // Mimic processing
-        setTimeout(() => {
-          setRecordings((prev) =>
-            prev.map((rec) =>
-              rec.idRecording === newRecording.idRecording
-                ? { ...rec, status: "processed", duration: "3:45" }
-                : rec
-            )
-          );
-          alert(`Recording "${file.name}" processed successfully!`);
-        }, 3000);
+      const formattedDuration = await getAudioDuration(file);
+
+      const generatedId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}`;
+
+      const newRecording: Recording = {
+        id: generatedId,
+        title: file.name.split(".")[0] ?? "New Recording",
+        duration: formattedDuration,
+        date: new Date().toISOString().split("T")[0],
+        contact: "New Contact",
+        status: "processing",
+        source: "upload",
+        lead: null,
+        transcript: null,
+      };
+
+      setRecordings((prev) => [newRecording, ...prev]);
+
+      try {
+        const formData = new FormData();
+        formData.append("audio", file);
+
+        const response = await fetch(`${apiBaseUrl}/api/process-audio`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || `Backend returned ${response.status}`);
+        }
+
+        const payload: {
+          transcription?: string;
+          lead?: LeadDetails;
+        } = await response.json();
+
+        const lead = payload.lead ?? null;
+        const fullName = [lead?.firstName, lead?.lastName]
+          .filter(Boolean)
+          .join(" ");
+        const updatedContact =
+          fullName.length > 0 ? fullName : newRecording.contact;
+        const updatedTitle =
+          lead?.company && lead.company.length > 0
+            ? `${lead.company} Lead`
+            : newRecording.title;
+
+        setRecordings((prev) =>
+          prev.map((rec) =>
+            rec.id === generatedId
+              ? {
+                  ...rec,
+                  status: "processed",
+                  contact: updatedContact,
+                  title: updatedTitle,
+                  lead,
+                  transcript: payload.transcription ?? null,
+                }
+              : rec
+          )
+        );
+
+        const updated = [
+          {
+            ...newRecording,
+            status: "processed",
+            contact: updatedContact,
+            title: updatedTitle,
+            lead,
+            transcript: payload.transcription ?? null,
+          },
+          ...recordings,
+        ];
+        localStorage.setItem("recordings", JSON.stringify(updated));
+
+        alert(`Recording "${file.name}" processed successfully!`);
+      } catch (error) {
+        console.error("Failed to process audio upload:", error);
+        setRecordings((prev) =>
+          prev.filter((rec) => rec.id !== generatedId)
+        );
+        alert(
+          "We could not process this recording. Please verify your server is running and try again."
+        );
+      } finally {
+        input.value = "";
       }
     };
     input.click();
@@ -145,7 +307,6 @@ function Recordings() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header (Teammate's version, with upload button) */}
       <header className="bg-white border-b border-slate-200 w-full">
         <div className="w-full px-4">
           <div className="flex justify-between items-center h-16">
@@ -230,18 +391,16 @@ function Recordings() {
         </div>
       </header>
 
-      {/* Main content (Teammate's UI) */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-slate-900 mb-2">
-            Recordings
+            Voice Recordings
           </h1>
           <p className="text-slate-600">
-            Browse and manage all processed recordings
+            {recordings.length} recordings processed by AI
           </p>
         </div>
 
-        {/* Filters and Search (Teammate's UI) */}
         <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
             <div className="flex gap-2">
@@ -266,7 +425,7 @@ function Recordings() {
             <div className="flex-1 w-full sm:max-w-md">
               <input
                 type="text"
-                placeholder="Search recordings by title or contact..."
+                placeholder="Search recordings..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
@@ -275,12 +434,10 @@ function Recordings() {
           </div>
         </div>
 
-        {/* Recordings Grid (Teammate's UI + API data) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* --- This map now uses all the correct API properties --- */}
           {filteredRecordings.map((recording) => (
             <div
-              key={recording.idRecording} // Use API property
+              key={recording.id}
               className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between mb-4">
@@ -291,7 +448,7 @@ function Recordings() {
                         ? "bg-red-100 text-red-600"
                         : recording.source === "call"
                         ? "bg-blue-100 text-blue-600"
-                        : "bg-green-100 text-green-600" // For 'upload'
+                        : "bg-green-100 text-green-600"
                     }`}
                   >
                     <span className="text-lg">
@@ -306,10 +463,7 @@ function Recordings() {
                     <h3 className="font-semibold text-slate-900">
                       {recording.title}
                     </h3>
-                    {/* Use leadMap to get company name */}
-                    <p className="text-slate-600 text-sm">
-                      {leadMap.get(recording.idLead) || (recording.source === "upload" ? "New Upload" : "Unknown Contact")}
-                    </p>
+                    <p className="text-slate-600 text-sm">{recording.contact}</p>
                   </div>
                 </div>
                 <span
@@ -323,13 +477,14 @@ function Recordings() {
                 </span>
               </div>
 
-              <div className="mb-4">
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-sm text-slate-600">
+                  <span>Duration</span>
+                  <span className="font-medium">{recording.duration}</span>
+                </div>
                 <div className="flex justify-between text-sm text-slate-600">
                   <span>Date</span>
-                  {/* Use API property and format it */}
-                  <span className="font-medium">
-                    {new Date(recording.created_At).toLocaleDateString()}
-                  </span>
+                  <span className="font-medium">{recording.date}</span>
                 </div>
                 <div className="flex justify-between text-sm text-slate-600">
                   <span>Source</span>
@@ -339,23 +494,60 @@ function Recordings() {
                 </div>
               </div>
 
+              {recording.lead && (
+                <div className="mt-4 p-3 bg-slate-50 rounded-lg text-sm text-slate-600 space-y-1">
+                  <div className="flex justify-between">
+                    <span className="font-medium text-slate-700">Lead status</span>
+                    <span className="capitalize">{recording.lead.status}</span>
+                  </div>
+                  {recording.lead.priority && (
+                    <div className="flex justify-between">
+                      <span className="font-medium text-slate-700">Priority</span>
+                      <span className="capitalize">{recording.lead.priority}</span>
+                    </div>
+                  )}
+                  {recording.lead.company && (
+                    <div>
+                      <span className="font-medium text-slate-700">Company: </span>
+                      <span>{recording.lead.company}</span>
+                    </div>
+                  )}
+                  {recording.lead.email && (
+                    <div>
+                      <span className="font-medium text-slate-700">Email: </span>
+                      <span>{recording.lead.email}</span>
+                    </div>
+                  )}
+                  {recording.lead.phone && (
+                    <div>
+                      <span className="font-medium text-slate-700">Phone: </span>
+                      <span>{recording.lead.phone}</span>
+                    </div>
+                  )}
+                  {recording.lead.leadSource && (
+                    <div>
+                      <span className="font-medium text-slate-700">Source: </span>
+                      <span>{recording.lead.leadSource}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <button
-                  onClick={() =>
-                    alert(`Playing recording: ${recording.title}`)
-                  }
+                  onClick={() => alert(`Playing recording: ${recording.title}`)}
                   className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
                 >
                   Play
                 </button>
                 <button
-                  onClick={() => reprocessRecording(recording.idRecording)} // Use API property
+                  onClick={() => reprocessRecording(recording.id)}
                   className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700"
                 >
                   Reprocess
                 </button>
                 <button
-                  onClick={() => deleteRecording(recording.idRecording)} // Use API property
+                  onClick={() => deleteRecording(recording.id)}
                   className="px-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200"
                 >
                   🗑️
@@ -365,7 +557,6 @@ function Recordings() {
           ))}
         </div>
 
-        {/* Empty state (Teammate's UI) */}
         {filteredRecordings.length === 0 && (
           <div className="text-center py-12">
             <div className="text-slate-400 text-lg mb-2">
