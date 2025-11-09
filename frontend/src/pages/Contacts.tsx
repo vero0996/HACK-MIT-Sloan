@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface Contact {
@@ -7,89 +7,113 @@ interface Contact {
   company: string;
   email: string;
   phone: string;
-  lastContact: string;
+  title: string; // CEO, CFO, etc.
+  status: 'active' | 'inactive' | 'lead';
+  priority: 'high' | 'medium' | 'low';
   source: string;
+  createdAt: string;
+  lastUpdated: string;
+  lastContact: string;
+  followUpDate: string;
+  notes: string;
 }
 
 function Contacts() {
   const navigate = useNavigate();
-
-  // ✅ Charger les contacts depuis localStorage
-  const [contacts, setContacts] = useState<Contact[]>(() => {
-    const saved = localStorage.getItem("contacts");
-    return saved ? JSON.parse(saved) : [
-      { id: '1', name: 'Sarah Chen', company: 'TechCorp Inc', email: 'sarah@techcorp.com', phone: '+1-555-0123', lastContact: '2 min ago', source: 'voice' },
-      { id: '2', name: 'Mike Rodriguez', company: 'StartupXYZ', email: 'mike@startupxyz.com', phone: '+1-555-0124', lastContact: '15 min ago', source: 'call' },
-      { id: '3', name: 'Jennifer Lee', company: 'InnovateCo', email: 'jennifer@innovateco.com', phone: '+1-555-0125', lastContact: '1 hour ago', source: 'email' },
-      { id: '4', name: 'Alex Thompson', company: 'Global Solutions', email: 'alex@globalsolutions.com', phone: '+1-555-0126', lastContact: '2 hours ago', source: 'voice' },
-      { id: '5', name: 'Maria Garcia', company: 'Tech Innovators', email: 'maria@techinnovators.com', phone: '+1-555-0127', lastContact: '1 day ago', source: 'call' }
-    ];
-  });
+  const [contacts, setContacts] = useState<Contact[]>([
+    { 
+      id: '1', 
+      name: 'Sarah Chen', 
+      company: 'TechCorp Inc', 
+      email: 'sarah@techcorp.com', 
+      phone: '+1-555-0123', 
+      title: 'CEO',
+      status: 'active',
+      priority: 'high',
+      source: 'voice',
+      createdAt: '2024-01-10',
+      lastUpdated: '2024-01-15',
+      lastContact: '2 min ago',
+      followUpDate: '2024-01-20',
+      notes: 'Interested in enterprise plan'
+    },
+    { 
+      id: '2', 
+      name: 'Mike Rodriguez', 
+      company: 'StartupXYZ', 
+      email: 'mike@startupxyz.com', 
+      phone: '+1-555-0124', 
+      title: 'CTO',
+      status: 'active',
+      priority: 'high',
+      source: 'call',
+      createdAt: '2024-01-12',
+      lastUpdated: '2024-01-15',
+      lastContact: '15 min ago',
+      followUpDate: '2024-01-18',
+      notes: 'Technical discussion scheduled'
+    },
+    { 
+      id: '3', 
+      name: 'Jennifer Lee', 
+      company: 'InnovateCo', 
+      email: 'jennifer@innovateco.com', 
+      phone: '+1-555-0125', 
+      title: 'CFO',
+      status: 'lead',
+      priority: 'medium',
+      source: 'email',
+      createdAt: '2024-01-08',
+      lastUpdated: '2024-01-14',
+      lastContact: '1 hour ago',
+      followUpDate: '2024-01-22',
+      notes: 'Budget review needed'
+    }
+  ]);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [showForm, setShowForm] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
 
-  // Champs du nouveau contact
-  const [name, setName] = useState('');
-  const [company, setCompany] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [source, setSource] = useState('voice');
+  const filteredContacts = contacts.filter(contact => {
+    const matchesSearch = contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         contact.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         contact.title.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
+    const matchesPriority = priorityFilter === 'all' || contact.priority === priorityFilter;
 
-  // ✅ Sauvegarde automatique dans localStorage
-  useEffect(() => {
-    localStorage.setItem("contacts", JSON.stringify(contacts));
-  }, [contacts]);
+    return matchesSearch && matchesStatus && matchesPriority;
+  });
 
-  // ✅ Filtrage des contacts
-  const filteredContacts = contacts.filter(contact =>
-    contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // ✅ Suppression d’un contact
   const deleteContact = (id: string) => {
     setContacts(prev => prev.filter(contact => contact.id !== id));
   };
 
-  // ✅ Ajout d’un contact
-  const handleAddContact = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !email) {
-      alert("Name and Email are required.");
-      return;
-    }
-
-    const newContact: Contact = {
-      id: Date.now().toString(),
-      name,
-      company,
-      email,
-      phone,
-      lastContact: 'just now',
-      source,
+  const getPriorityBadge = (priority: string) => {
+    const styles = {
+      high: 'bg-red-100 text-red-800',
+      medium: 'bg-yellow-100 text-yellow-800',
+      low: 'bg-green-100 text-green-800'
     };
-
-    setContacts(prev => [...prev, newContact]);
-    setName('');
-    setCompany('');
-    setEmail('');
-    setPhone('');
-    setSource('voice');
-    setShowForm(false); // ✅ ferme le formulaire après ajout
+    return `inline-flex px-2 py-1 text-xs font-medium rounded-full ${styles[priority as keyof typeof styles]}`;
   };
 
-  // ✅ Export CSV (simple simulation)
-  const exportContacts = () => {
-    alert('Exporting contacts to CSV...');
+  const getStatusBadge = (status: string) => {
+    const styles = {
+      active: 'bg-green-100 text-green-800',
+      inactive: 'bg-gray-100 text-gray-800',
+      lead: 'bg-blue-100 text-blue-800'
+    };
+    return `inline-flex px-2 py-1 text-xs font-medium rounded-full ${styles[status as keyof typeof styles]}`;
   };
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
+      {/* Header remains the same */}
       <header className="bg-white border-b border-slate-200 w-full">
-        <div className="w-full px-4">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0 flex items-center gap-3">
@@ -111,11 +135,8 @@ function Contacts() {
               </nav>
             </div>
             <div className="flex items-center gap-3">
-              <button 
-                onClick={() => setShowForm(prev => !prev)} 
-                className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700"
-              >
-                {showForm ? "Cancel" : "Add Contact"}
+              <button className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700">
+                Add Contact
               </button>
               <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
                 JD
@@ -125,101 +146,70 @@ function Contacts() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-slate-900 mb-2">Contacts</h1>
           <p className="text-slate-600">{contacts.length} contacts auto-created from voice conversations</p>
         </div>
 
-        {/* 🔽 Formulaire affiché seulement si showForm = true */}
-        {showForm && (
-          <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6 shadow-sm animate-fadeIn">
-            <form onSubmit={handleAddContact} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Name"
-                className="px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-              <input
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="Company"
-                className="px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                className="px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Phone"
-                className="px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-              <select
-                value={source}
-                onChange={(e) => setSource(e.target.value)}
-                className="px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                <option value="voice">Voice</option>
-                <option value="call">Call</option>
-                <option value="email">Email</option>
-              </select>
-              <div className="sm:col-span-2 md:col-span-4 flex justify-end">
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Save Contact
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Search & Actions */}
+        {/* Enhanced Filters */}
         <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-            <div className="flex-1 w-full sm:max-w-md">
+            <div className="flex flex-wrap gap-2">
               <input
                 type="text"
                 placeholder="Search contacts..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
-            </div>
-            <div className="flex gap-3">
-              <button 
-                onClick={exportContacts}
-                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 text-sm font-medium"
+              
+              <select 
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
               >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="lead">Lead</option>
+              </select>
+
+              <select 
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value)}
+                className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                <option value="all">All Priority</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            
+            <div className="flex gap-3">
+              <button className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 text-sm font-medium">
                 Export
               </button>
-              <button 
-                onClick={() => setShowForm(prev => !prev)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
-              >
-                {showForm ? "Cancel" : "Add Contact"}
+              <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">
+                Add Contact
               </button>
             </div>
           </div>
         </div>
 
-        {/* Contacts Table */}
+        {/* Enhanced Contacts Table */}
         <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Contact</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Company</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Contact Info</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Company & Title</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Priority</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Last Contact</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Source</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Follow-up</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -231,23 +221,34 @@ function Contacts() {
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-medium text-sm mr-3">
                           {contact.name.split(' ').map(n => n[0]).join('')}
                         </div>
-                        <div className="text-sm font-medium text-slate-900">{contact.name}</div>
+                        <div>
+                          <div className="text-sm font-medium text-slate-900">{contact.name}</div>
+                          <div className="text-sm text-slate-500">{contact.email}</div>
+                          <div className="text-xs text-slate-400">{contact.phone}</div>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{contact.company}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-slate-900">{contact.email}</div>
-                      <div className="text-sm text-slate-500">{contact.phone}</div>
+                      <div className="text-sm text-slate-900">{contact.company}</div>
+                      <div className="text-sm text-slate-500">{contact.title}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{contact.lastContact}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                        contact.source === 'voice' ? 'bg-green-100 text-green-800' :
-                        contact.source === 'call' ? 'bg-blue-100 text-blue-800' :
-                        'bg-purple-100 text-purple-800'
-                      }`}>
-                        {contact.source}
+                      <span className={getStatusBadge(contact.status)}>
+                        {contact.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={getPriorityBadge(contact.priority)}>
+                        {contact.priority}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-slate-900">{contact.lastContact}</div>
+                      <div className="text-xs text-slate-500">Updated: {contact.lastUpdated}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-slate-900">{contact.followUpDate}</div>
+                      <div className="text-xs text-slate-500">Created: {contact.createdAt}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button 
@@ -273,7 +274,7 @@ function Contacts() {
         {filteredContacts.length === 0 && (
           <div className="text-center py-12">
             <div className="text-slate-400 text-lg">No contacts found</div>
-            <div className="text-slate-500 text-sm mt-2">Try adjusting your search terms</div>
+            <div className="text-slate-500 text-sm mt-2">Try adjusting your search terms or filters</div>
           </div>
         )}
       </main>

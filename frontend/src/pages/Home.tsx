@@ -1,7 +1,8 @@
 // pages/Home.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
+// Eliminamos la importación de SignUpModal ya que ahora está integrado
 
 interface Contact {
   id: string;
@@ -28,6 +29,8 @@ function Home() {
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(true);
   const [recording, setRecording] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [user, setUser] = useState<any>(null);
+
   const [contacts, setContacts] = useState<Contact[]>([
     { id: '1', name: 'Sarah Chen', company: 'TechCorp Inc', email: 'sarah@techcorp.com', phone: '+1-555-0123', lastContact: '2 min ago', source: 'voice' },
     { id: '2', name: 'Mike Rodriguez', company: 'StartupXYZ', email: 'mike@startupxyz.com', phone: '+1-555-0124', lastContact: '15 min ago', source: 'call' },
@@ -46,6 +49,14 @@ function Home() {
     recorder: false,
     upload: false
   });
+
+  // Get user data on component mount
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
 
   const stats = [
     { value: contacts.length.toString(), label: "Total Contacts", change: "+12 today", trend: "up", onClick: () => navigate('/contacts') },
@@ -172,19 +183,21 @@ function Home() {
     alert(`${source.charAt(0).toUpperCase() + source.slice(1)} disconnected.`);
   };
 
-  const deleteContact = (id: string) => {
-    setContacts(prev => prev.filter(contact => contact.id !== id));
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/auth'); // Cambiamos de '/login' a '/auth'
   };
 
-  const deleteRecording = (id: string) => {
-    setRecordings(prev => prev.filter(recording => recording.id !== id));
+  const handleUpgrade = () => {
+    // En lugar de abrir SignUpModal, mostramos un mensaje o redirigimos
+    alert("Upgrade feature coming soon! Contact sales for enterprise features.");
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 w-full">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 w-full">
-        <div className="w-full px-8 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0 flex items-center gap-3">
@@ -200,7 +213,7 @@ function Home() {
               </div>
               <nav className="hidden md:ml-8 md:flex space-x-1">
                 <button 
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => { setActiveTab('dashboard'); navigate('/'); }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     activeTab === 'dashboard' ? 'text-slate-700 bg-red-50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
@@ -208,7 +221,7 @@ function Home() {
                   Dashboard
                 </button>
                 <button 
-                  onClick={() => navigate('/contacts')}
+                  onClick={() => { setActiveTab('contacts'); navigate('/contacts'); }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     activeTab === 'contacts' ? 'text-slate-700 bg-red-50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
@@ -216,7 +229,7 @@ function Home() {
                   Contacts
                 </button>
                 <button 
-                  onClick={() => navigate('/recordings')}
+                  onClick={() => { setActiveTab('recordings'); navigate('/recordings'); }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     activeTab === 'recordings' ? 'text-slate-700 bg-red-50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
@@ -224,7 +237,7 @@ function Home() {
                   Recordings
                 </button>
                 <button 
-                  onClick={() => navigate('/settings')}
+                  onClick={() => { setActiveTab('settings'); navigate('/settings'); }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     activeTab === 'settings' ? 'text-slate-700 bg-red-50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
@@ -234,6 +247,15 @@ function Home() {
               </nav>
             </div>
             <div className="flex items-center gap-3">
+              <button 
+                onClick={handleUpgrade}
+                className="bg-gradient-to-r from-red-600 to-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-red-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Upgrade
+              </button>
               <button 
                 onClick={() => handleVoiceAction('record')}
                 disabled={recording}
@@ -257,25 +279,45 @@ function Home() {
                   </>
                 )}
               </button>
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
-                JD
+              
+              {/* User dropdown with logout */}
+              <div className="relative group">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm cursor-pointer">
+                  {user?.name?.charAt(0) || 'U'}
+                </div>
+                
+                {/* Dropdown menu */}
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                  <div className="px-4 py-2 border-b border-slate-100">
+                    <p className="text-sm font-medium text-slate-900">{user?.name || 'User'}</p>
+                    <p className="text-xs text-slate-500">{user?.email || 'user@example.com'}</p>
+                  </div>
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Sign Out
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Rest of the Home component remains the same as before */}
       {/* Welcome Banner */}
       {showWelcomeBanner && (
         <div className="bg-gradient-to-r from-red-600 to-blue-600 text-white">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="w-full px-4 sm:px-6 lg:px-8 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="text-lg">🎯</div>
                 <div>
-                  <p className="font-medium text-sm">Your CRM updates itself from voice conversations</p>
-                  <p className="text-red-100 text-xs">No typing, no forms, no manual entry</p>
+                  <p className="font-medium text-sm">Welcome back, {user?.name || 'User'}!</p>
+                  <p className="text-red-100 text-xs">Your CRM is ready to capture voice conversations</p>
                 </div>
               </div>
               <button 
@@ -291,7 +333,8 @@ function Home() {
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+      {/* Main Content */}
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-slate-900 mb-2">Voice-Driven CRM</h1>
@@ -555,11 +598,25 @@ function Home() {
                 </button>
               </div>
             </div>
+
+            {/* Upgrade CTA Card */}
+            <div className="bg-gradient-to-r from-red-600 to-blue-600 rounded-lg p-6 text-white text-center">
+              <h3 className="font-bold text-lg mb-2">Ready to scale?</h3>
+              <p className="text-red-100 text-sm mb-4">
+                Upgrade to unlock advanced features and team collaboration
+              </p>
+              <button 
+                onClick={handleUpgrade}
+                className="bg-white text-red-600 px-6 py-2 rounded-lg font-semibold hover:bg-red-50 transition-all"
+              >
+                Start Free Trial
+              </button>
+            </div>
           </div>
         </div>
       </main>
 
-      {/* Modal */}
+      {/* Connect Source Modal */}
       <Modal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
